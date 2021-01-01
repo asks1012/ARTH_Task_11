@@ -1,0 +1,54 @@
+- hosts: datanode
+  vars_prompt:
+  - name: datanode_directory
+    prompt: Enter the absolute directory path of datanode
+    private: no
+  tasks:
+  - name: Copying JDK rpm file
+    copy:
+      src: /root/jdk-8u171-linux-x64.rpm
+      dest: /root/jdk-8u171-linux-x64.rpm
+  - name: Copying Hadoop rpm file
+    copy:
+      src: /root/hadoop-1.2.1-1.x86_64.rpm
+      dest: /root/hadoop-1.2.1-1.x86_64.rpm
+  - name: Checking java is installed or not
+    command: java -version
+    register: j
+    ignore_errors: yes
+  - name: Installing java
+    command: rpm -i /root/jdk-8u171-linux-x64.rpm
+    when: j.rc != 0
+  - name: Checking Hadoop is installed or not
+    command: hadoop version
+    register: h
+    ignore_errors: yes
+  - name: Installing Hadoop
+    command: rpm -i /root/hadoop-1.2.1-1.x86_64.rpm --force
+    when: h.rc != 0
+  - name: Creating DataNode Directory
+    file:
+      path: "{{ datanode_directory  }}"
+      state: directory
+  - name: Copying hdfs-site.xml file
+    template:
+      src: /root/hdfs-site.xml
+      dest: /etc/hadoop/hdfs-site.xml
+  - name: Copying core-site.xml file
+    template:
+      src: /root/core-site.xml
+      dest: /etc/hadoop/core-site.xml
+  - name: Enabling port 50075
+    firewalld:
+      port: 50075/tcp
+      state: enabled
+      permanent: yes
+      immediate: yes
+  - name: Checking DataNode is running or not
+    command: hadoop dfsadmin -report
+    register: x
+    failed_when: false
+    ignore_errors: yes
+  - name: Starting DataNode
+    command: hadoop-daemon.sh start datanode
+    when: x.rc != 0
