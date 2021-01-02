@@ -44,11 +44,5 @@
       state: enabled
       permanent: yes
       immediate: yes
-  - name: Checking DataNode is running or not
-    command: hadoop dfsadmin -report
-    register: x
-    failed_when: false
-    ignore_errors: yes
   - name: Starting DataNode
     command: hadoop-daemon.sh start datanode
-    when: x.rc != 0
